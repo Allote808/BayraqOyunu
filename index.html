@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bayraq Oyunu</title>
+  <style>
+    /* Genel stiller */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #eef2f3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    body.dark { background-color: #121212; color: white; }
+    body.blue { background-color: #d0e7ff; color: #003366; }
+    body.neon { background-color: black; color: #39ff14; }
+    body.retro { background-color: #fceabb; color: #6a0572; }
+    h1 { font-size: 24px; margin: 15px 0; }
+
+    /* Navbar ve menü */
+    .navbar {
+      width: 100%;
+      background-color: #2d3e50;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .navbar-title { /* başlık için sınıf */
+      cursor: default;
+    }
+    .navbar .menu { cursor: pointer; font-size: 24px; }
+    .navbar-coin {
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 16px;
+    }
+    .music-toggle {
+      cursor: pointer;
+      font-size: 24px;
+      margin-right: 15px;
+    }
+    .menu-options {
+      display: none;
+      position: absolute;
+      top: 60px;
+      right: 10px;
+      background-color: #fff;
+      color: #333;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+    }
+    .navbar.dark .menu-options {
+      background-color: #333;
+      color: white;
+    }
+    .menu-options button,
+    .menu-options select {
+      font-size: 14px;
+      padding: 8px 12px;
+      margin: 5px;
+      border: none;
+      background-color: #2d3e50;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .menu-options button:hover { background-color: #4CAF50; }
+    
+    /* Ses kontrolü için stil */
+    .volume-control {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+    .volume-slider {
+      width: 100px;
+      margin: 0 5px;
+    }
+    /* Navbar'daki ses kontrolü */
+    .navbar-volume-control {
+      display: flex;
+      align-items: center;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 5px 10px;
+      margin-right: 10px;
+    }
+
+    /* ====== RANGE SLIDER ÖZEL STİLLERİ ====== */
+    .navbar-volume-slider {
+      width: 60px;
+      margin: 0 5px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      padding: 0;
+    }
+    .navbar-volume-slider:focus { outline: none; }
+    .navbar-volume-slider::-webkit-slider-runnable-track {
+      height: 4px;
+      background: rgba(255,255,255,0.6);
+      border-radius: 2px;
+    }
+    .navbar-volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: blue;
+      border-radius: 50%;
+      margin-top: -4px;
+    }
+    .navbar-volume-slider::-moz-range-track {
+      height: 4px;
+      background: rgba(255,255,255,0.6);
+      border-radius: 2px;
+    }
+    .navbar-volume-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: blue;
+      border-radius: 50%;
+      border: none;
+    }
+    /* ============================================ */
+
+    /* Oyun alanı */
+    #score-timer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin: 5px;
+    }
+    #score, #timer, #coins {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    #question { font-size: 18px; margin: 10px 0; text-align: center; }
+    .flags {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      padding: 15px;
+      width: 90%;
+      max-width: 500px;
+      position: relative;
+      z-index: 1;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, border 0.3s ease;
+      cursor: pointer;
+      border: 3px solid transparent;
+    }
+    .card img { width: 100%; height: auto; display: block; }
+    .card.correct { border-color: #4CAF50; }
+    .card.wrong { border-color: #F44336; }
+
+    /* Modal stilleri */
+    #loginModal, #logoutModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    #modalContent {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 300px;
+      width: 90%;
+      font-family: Arial, sans-serif;
+      color: black;
+    }
+    #modalContent h2 { margin-bottom: 20px; }
+    input {
+      padding: 12px;
+      width: 80%;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      color: black;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #2d3e50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background-color: #4CAF50; }
+    
+    /* Game inactive/disabled style */
+    .game-inactive {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .game-inactive .card {
+      cursor: default;
+    }
+
+    /* Responsive: 500px altı için */
+    @media (max-width: 500px) {
+      .card { border-radius: 8px; }
+      h1 { font-size: 18px; }
+      .navbar-volume-slider { width: 40px; }
+      /* Mobilde başlığı gizle */
+      .navbar-title { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar ve Ayarlar -->
+  <div class="navbar" id="navbar">
+    <span class="navbar-title">🌍 Bayraq Oyunu</span>
+    <div style="display: flex; align-items: center;">
+      <!-- Ses kontrolü navbar'a taşındı -->
+      <div class="navbar-volume-control">
+        <span id="musicToggle" onclick="toggleMusic()">🔉</span>
+        <input type="range" id="volumeSlider" class="navbar-volume-slider" min="0" max="100" value="100">
+      </div>
+      <span class="navbar-coin" id="navbarCoin">💰 0</span>
+      <span class="menu" onclick="toggleMenu()">⚙️</span>
+    </div>
+    <div class="menu-options" id="menu-options">
+      <p id="usernameInSettings" style="color: #333;">Giriş etmediniz.</p>
+      <label>Zaman:
+        <select id="timeSelect">
+          <option value="60">60s</option>
+          <option value="120">120s</option>
+          <option value="200">200s</option>
+        </select>
+      </label><br>
+      <label>Çətinlik:
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value ="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </label><br>
+      <label>Tema:
+        <select id="theme">
+          <option value="">Standart</option>
+          <option value="dark">Dark</option>
+          <option value="blue">Blue</option>
+          <option value="neon">Neon</option>
+          <option value="retro">Retro</option>
+        </select>
+      </label><br>
+      <button onclick="applySettings()">Tətbiq et</button>
+      <button id="loginLogoutBtn" onclick="handleLoginLogout()">Giriş</button>
+    </div>
+  </div>
+
+  <!-- Göstəricilər -->
+  <div id="score-timer">
+    <span id="score">Xal: 0</span>
+    <span id="timer">Vaxt: 60</span>
+    <span id="coins">💰 0</span>
+  </div>
+
+  <h1 id="question">Haradır bu bayraq?</h1>
+
+  <!-- Bayraq kartları -->
+  <div class="flags game-inactive" id="flags"></div>
+
+  <!-- Giriş Modalı -->
+  <div id="loginModal">
+    <div id="modalContent">
+      <h2>Adınızı daxil edin</h2>
+      <input type="text" id="usernameInput" placeholder="Məsələn: Rəsul">
+      <button onclick="startGame()">Başla</button>
+    </div>
+  </div>
+
+  <!-- SƏSLƏR -->
+  <audio id="correctSound" src="Doğru.mp3"></audio>
+  <audio id="wrongSound" src="Yanlış.mp3"></audio>
+  <audio id="backgroundMusic" src="oyunmusic.mp3" loop></audio>
+
+  <script>
+    const flags = [
+      { name: "Azərbaycan", img: "https://flagcdn.com/w320/az.png" },
+      { name: "Türkiyə", img: "https://flagcdn.com/w320/tr.png" },
+      { name: "ABŞ", img: "https://flagcdn.com/w320/us.png" },
+      { name: "Almaniya", img: "https://flagcdn.com/w320/de.png" },
+      { name: "Fransa", img: "https://flagcdn.com/w320/fr.png" },
+      { name: "Yaponiya", img: "https://flagcdn.com/w320/jp.png" },
+      { name: "Braziliya", img: "https://flagcdn.com/w320/br.png" },
+      { name: "İngiltərə", img: "https://flagcdn.com/w320/gb.png" }
+    ];
+
+    let correctAnswer = "", score = 0, gameCoins = 0, totalCoins = 0;
+    let timer, timeLeft = 60, username = "", isLoggedIn = false;
+    let isMusicPlaying = true, volume = 50;
+
+    const backgroundMusic = document.getElementById("backgroundMusic");
+    const correctSound = document.getElementById("correctSound");
+    const wrongSound = document.getElementById("wrongSound");
+    const volumeSlider = document.getElementById("volumeSlider");
+
+    window.onload = function() {
+      loadUserData();
+      generateFlags();
+      loadAudioSettings();
+      volumeSlider.addEventListener("input", function() {
+        volume = parseInt(this.value);
+        updateVolume();
+        localStorage.setItem('volume', volume);
+      });
+      document.addEventListener('click', initializeAudio, { once: true });
+    };
+
+    function loadAudioSettings() {
+      const savedMusicSetting = localStorage.getItem('musicSetting');
+      const savedVolume = localStorage.getItem('volume');
+      isMusicPlaying = savedMusicSetting !== 'false';
+      if (savedVolume !== null) {
+        volume = parseInt(savedVolume);
+        volumeSlider.value = volume;
+      }
+      updateVolume();
+    }
+
+    function updateVolume() {
+      const vol = volume / 100;
+      backgroundMusic.volume = vol;
+      correctSound.volume = vol;
+      wrongSound.volume = vol;
+      document.getElementById("musicToggle").textContent =
+        volume === 0 ? "🔇" :
+        volume < 0 ? "🔈" :
+        volume < 100 ? "🔉" : "🔊";
+    }
+
+    function initializeAudio() {
+      if (isMusicPlaying && volume > 0) backgroundMusic.play();
+    }
+
+    function toggleMusic() {
+      isMusicPlaying = !isMusicPlaying;
+      if (isMusicPlaying && volume > 0) {
+        backgroundMusic.play();
+      } else {
+        backgroundMusic.pause();
+      }
+      localStorage.setItem('musicSetting', isMusicPlaying);
+      updateVolume();
+    }
+
+    function toggleMenu() {
+      const menu = document.getElementById("menu-options");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+
+    function generateFlags() {
+      const shuffled = flags.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 4);
+      correctAnswer = selected[Math.floor(Math.random() * selected.length)].name;
+      document.getElementById("question").textContent = `Haradır bu bayraq: ${correctAnswer}?`;
+
+      const flagsDiv = document.getElementById("flags");
+      flagsDiv.innerHTML = "";
+      selected.forEach(flag => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const img = document.createElement("img");
+        img.src = flag.img;
+        card.appendChild(img);
+        card.onclick = () => selectFlag(flag.name, card);
+        flagsDiv.appendChild(card);
+      });
+    }
+
+    function selectFlag(name, card) {
+      if (name === correctAnswer) {
+        score += 10;
+        gameCoins += 1;
+        correctSound.play();
+        card.classList.add("correct");
+      } else {
+        wrongSound.play();
+        card.classList.add("wrong");
+      }
+
+      document.getElementById("score").textContent = "Xal: " + score;
+      document.getElementById("coins").textContent = "💰 " + gameCoins;
+
+      setTimeout(generateFlags, 800);
+    }
+
+    function startGame() {
+      const input = document.getElementById("usernameInput");
+      username = input.value.trim();
+      if (username.length === 0) return alert("Ad daxil edin!");
+
+      document.getElementById("loginModal").style.display = "none";
+      document.getElementById("flags").classList.remove("game-inactive");
+
+      document.getElementById("usernameInSettings").textContent = username;
+      isLoggedIn = true;
+      document.getElementById("loginLogoutBtn").textContent = "Çıxış";
+
+      score = 0;
+      gameCoins = 0;
+      timeLeft = parseInt(document.getElementById("timeSelect").value);
+      document.getElementById("score").textContent = "Xal: 0";
+      document.getElementById("coins").textContent = "💰 0";
+      document.getElementById("timer").textContent = "Vaxt: " + timeLeft;
+
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").textContent = "Vaxt: " + timeLeft;
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function endGame() {
+      clearInterval(timer);
+      alert(`Oyun bitdi! Xal: ${score} | Qazandığın pul: ${gameCoins}`);
+      totalCoins += gameCoins;
+      localStorage.setItem("coins", totalCoins);
+      document.getElementById("navbarCoin").textContent = "💰 " + totalCoins;
+      document.getElementById("flags").classList.add("game-inactive");
+    }
+
+    function applySettings() {
+      const theme = document.getElementById("theme").value;
+      document.body.className = theme;
+    }
+
+    function handleLoginLogout() {
+      if (isLoggedIn) location.reload();
+      else document.getElementById("loginModal").style.display = "flex";
+    }
+
+    function loadUserData() {
+      totalCoins = parseInt(localStorage.getItem("coins") || "0");
+      document.getElementById("navbarCoin").textContent = "💰 " + totalCoins;
+    }
+  </script>
+</body>
+</html>
